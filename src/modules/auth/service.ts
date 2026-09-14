@@ -1,5 +1,5 @@
 import type { AuthSession, User } from '@/types/auth'
-import { request } from '@/api/http'
+import { requestReal } from '@/api/http'
 
 export type LoginPayload = {
   email: string
@@ -13,7 +13,7 @@ export type RegisterPayload = {
 }
 
 export async function login(payload: LoginPayload) {
-  return request<AuthSession>({
+  return requestReal<AuthSession>({
     url: '/auth/login',
     method: 'POST',
     data: payload,
@@ -21,7 +21,7 @@ export async function login(payload: LoginPayload) {
 }
 
 export async function register(payload: RegisterPayload) {
-  return request<AuthSession>({
+  return requestReal<AuthSession>({
     url: '/auth/register',
     method: 'POST',
     data: payload,
@@ -29,7 +29,7 @@ export async function register(payload: RegisterPayload) {
 }
 
 export async function me() {
-  return request<User>({
+  return requestReal<User>({
     url: '/auth/me',
     method: 'GET',
   })

@@ -6,7 +6,7 @@ import { createId } from '@/utils/id'
 import { readJson, writeJson } from '@/utils/storage'
 
 export type DbState = {
-  users: Array<User & { password: string }>
+  users: User[]
   projects: Project[]
   tasks: Task[]
   comments: TaskComment[]
@@ -17,6 +17,9 @@ const STORAGE_KEY = 'taskflow_pro_db_v1'
 
 export function createDb() {
   const state = loadDb()
+  // Rewrite legacy browser data once so upstream plaintext demo passwords
+  // are removed after Auth moves to the real backend.
+  writeJson(STORAGE_KEY, state)
 
   function save() {
     writeJson(STORAGE_KEY, state)
@@ -36,6 +39,9 @@ function loadDb(): DbState {
   return {
     ...seeded,
     ...persisted,
+    users: Array.isArray((persisted as Partial<DbState>).users)
+      ? persisted.users.map(({ id, email, name, role, avatarColor }) => ({ id, email, name, role, avatarColor }))
+      : seeded.users,
     activity: Array.isArray((persisted as Partial<DbState>).activity) ? persisted.activity : [],
   }
 }
@@ -48,14 +54,13 @@ function seedDb(): DbState {
 
   const now = new Date().toISOString()
 
-  const users: Array<User & { password: string }> = [
+  const users: User[] = [
     {
       id: adminId,
       email: 'admin@taskflow.pro',
       name: 'Amina Hassan',
       role: 'admin',
       avatarColor: '#7c3aed',
-      password: 'Admin123!',
     },
     {
       id: memberId,
@@ -63,7 +68,6 @@ function seedDb(): DbState {
       name: 'Omar Saeed',
       role: 'member',
       avatarColor: '#0ea5e9',
-      password: 'Member123!',
     },
   ]
 

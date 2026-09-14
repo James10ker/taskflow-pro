@@ -4,6 +4,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import { installRouter } from './router'
 import { installMockApi } from './api/mock'
+import { setUnauthorizedHandler } from './api/http'
 import { useAuthStore } from './modules/auth/store'
 import { useThemeStore } from './store/theme'
 import { useToastsStore } from './store/toasts'
@@ -55,9 +56,17 @@ async function bootstrap() {
   const authStore = useAuthStore(pinia)
   authStore.hydrate()
 
-  installMockApi()
+  installMockApi(() => authStore.user)
 
   const router = installRouter(app)
+  setUnauthorizedHandler(() => {
+    authStore.logout()
+    if (router.currentRoute.value.name !== 'login') {
+      void router.replace({ name: 'login' })
+    }
+  })
+
+  await authStore.refreshMe()
   await router.isReady()
 
   app.mount('#app')

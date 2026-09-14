@@ -1,7 +1,7 @@
 import type { AxiosAdapter, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 
 import type { ApiError } from '@/types/api'
-import type { AuthSession, User } from '@/types/auth'
+import type { User } from '@/types/auth'
 import type { ActivityEvent } from '@/types/activity'
 import type { Project } from '@/types/projects'
 import type { Task, TaskComment, TaskStatus } from '@/types/tasks'
@@ -10,10 +10,11 @@ import { createId } from '@/utils/id'
 import type { DbState } from './mockDb'
 
 type Db = { state: DbState; save: () => void }
+type CurrentUserProvider = () => User | null
 
 type JsonBody = Record<string, unknown> | null
 
-export function createMockAdapter(db: Db): AxiosAdapter {
+export function createMockAdapter(db: Db, currentUserProvider: CurrentUserProvider): AxiosAdapter {
   return async (config: InternalAxiosRequestConfig) => {
     await sleep(220)
 
@@ -21,19 +22,12 @@ export function createMockAdapter(db: Db): AxiosAdapter {
     const url = normalizeUrl(config.url)
 
     try {
-      const authUser = getAuthUser(db.state, config)
-
-      if (method === 'post' && url === '/auth/login') return ok(config, login(db, config))
-      if (method === 'post' && url === '/auth/register') return ok(config, register(db, config))
-      if (method === 'get' && url === '/auth/me') {
-        if (!authUser) return fail(config, 401, { code: 'UNAUTHORIZED', message: 'Not signed in.' })
-        return ok(config, authUser)
-      }
+      const authUser = getAuthUser(db.state, config, currentUserProvider)
 
       if (!authUser) return fail(config, 401, { code: 'UNAUTHORIZED', message: 'Not signed in.' })
 
       if (method === 'get' && url === '/users') {
-        return ok(config, db.state.users.map(stripPassword))
+        return ok(config, db.state.users)
       }
 
       if (method === 'get' && url === '/projects') {
@@ -372,12 +366,6 @@ function readBody(config: AxiosRequestConfig): JsonBody {
   return null
 }
 
-function stripPassword(user: User & { password: string }): User {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { password, ...rest } = user
-  return rest
-}
-
 function logActivity(state: DbState, input: Omit<ActivityEvent, 'id' | 'createdAt'>) {
   const event: ActivityEvent = {
     id: createId('act'),
@@ -394,71 +382,19 @@ function statusLabel(status: TaskStatus) {
   return 'Done'
 }
 
-function login(db: Db, config: AxiosRequestConfig): AuthSession {
-  const body = readBody(config)
-  const email = String(body?.email ?? '').trim().toLowerCase()
-  const password = String(body?.password ?? '')
-
-  const user = db.state.users.find((u) => u.email.toLowerCase() === email)
-  if (!user || user.password !== password) {
-    throw new ApiErrorImpl('UNAUTHORIZED', 'Invalid email or password.')
-  }
-
-  return { token: { accessToken: createToken(user.id) }, user: stripPassword(user) }
-}
-
-function register(db: Db, config: AxiosRequestConfig): AuthSession {
-  const body = readBody(config)
-  const email = String(body?.email ?? '').trim().toLowerCase()
-  const name = String(body?.name ?? '').trim()
-  const password = String(body?.password ?? '')
-
-  if (!email || !name || password.length < 6) {
-    throw new ApiErrorImpl('VALIDATION_ERROR', 'Invalid registration data.')
-  }
-
-  const exists = db.state.users.some((u) => u.email.toLowerCase() === email)
-  if (exists) throw new ApiErrorImpl('CONFLICT', 'This email is already registered.')
-
-  const user: User & { password: string } = {
-    id: createId('usr'),
-    email,
-    name,
-    role: 'member',
-    avatarColor: '#22c55e',
-    password,
-  }
-
-  db.state.users.push(user)
-  db.save()
-
-  return { token: { accessToken: createToken(user.id) }, user: stripPassword(user) }
-}
-
-function getAuthUser(state: DbState, config: AxiosRequestConfig): User | null {
+function getAuthUser(state: DbState, config: AxiosRequestConfig, currentUserProvider: CurrentUserProvider): User | null {
   const raw = String((config.headers as Record<string, unknown> | undefined)?.Authorization ?? '')
   const token = raw.startsWith('Bearer ') ? raw.slice('Bearer '.length).trim() : ''
   if (!token) return null
 
-  const userId = parseToken(token)
-  if (!userId) return null
+  // W1 bridge only: map the server-authenticated session to the old seeded
+  // user's mock ID so projects/tasks can remain in localStorage for now.
+  const currentUser = currentUserProvider()
+  if (!currentUser) return null
 
-  const user = state.users.find((u) => u.id === userId)
-  return user ? stripPassword(user) : null
-}
-
-function createToken(userId: string) {
-  return btoa(JSON.stringify({ userId }))
-}
-
-function parseToken(token: string): string | null {
-  try {
-    const raw = atob(token)
-    const parsed = JSON.parse(raw) as { userId?: string }
-    return parsed.userId ?? null
-  } catch {
-    return null
-  }
+  const mockUser = state.users.find((user) => user.email.toLowerCase() === currentUser.email.toLowerCase())
+  if (!mockUser) return null
+  return { ...mockUser, role: currentUser.role }
 }
 
 class ApiErrorImpl extends Error {

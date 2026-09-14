@@ -21,11 +21,8 @@
       Sign in
     </BaseButton>
 
-    <div class="text-center text-sm text-slate-600 dark:text-slate-300">
-      New here?
-      <RouterLink class="font-semibold text-slate-900 hover:underline dark:text-slate-50" to="/auth/register">
-        Create an account
-      </RouterLink>
+    <div class="text-center text-xs text-slate-500 dark:text-slate-400">
+      W1 supports the seeded admin and member demo accounts. Registration will be migrated later.
     </div>
   </form>
 </template>

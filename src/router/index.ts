@@ -12,7 +12,6 @@ import AuthLayout from '@/layouts/AuthLayout.vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 
 import LoginView from '@/modules/auth/views/LoginView.vue'
-import RegisterView from '@/modules/auth/views/RegisterView.vue'
 
 import DashboardView from '@/modules/dashboard/views/DashboardView.vue'
 import ProjectsView from '@/modules/projects/views/ProjectsView.vue'
@@ -40,7 +39,7 @@ const routes: RouteRecordRaw[] = [
     component: AuthLayout,
     children: [
       { path: 'login', name: 'login', component: LoginView },
-      { path: 'register', name: 'register', component: RegisterView },
+      { path: 'register', redirect: { name: 'login' } },
     ],
   },
   {

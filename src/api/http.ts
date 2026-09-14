@@ -1,5 +1,6 @@
 import axios, {
   type AxiosError,
+  type AxiosInstance,
   type AxiosRequestConfig,
   type AxiosResponse,
   type InternalAxiosRequestConfig,
@@ -10,7 +11,14 @@ import type { ApiError } from '@/types/api'
 type TokenProvider = () => string | null
 type UnauthorizedHandler = () => void
 
-export const http = axios.create({
+const realApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || '/api'
+
+export const realHttp = axios.create({
+  baseURL: realApiBaseUrl,
+  timeout: 8000,
+})
+
+export const mockHttp = axios.create({
   baseURL: '/api',
   timeout: 8000,
 })
@@ -26,24 +34,8 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler) {
   unauthorizedHandler = handler
 }
 
-http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = tokenProvider?.()
-  if (token) {
-    config.headers = config.headers ?? {}
-    ;(config.headers as Record<string, string>).Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-http.interceptors.response.use(
-  (res: AxiosResponse) => res,
-  (err: unknown) => {
-    if (isAxiosError(err) && err.response?.status === 401) {
-      unauthorizedHandler?.()
-    }
-    return Promise.reject(err)
-  },
-)
+installAuthInterceptors(realHttp)
+installAuthInterceptors(mockHttp)
 
 type RequestOptions = {
   retries?: number
@@ -51,6 +43,14 @@ type RequestOptions = {
 }
 
 export async function request<T>(config: AxiosRequestConfig, options: RequestOptions = {}): Promise<T> {
+  return requestWithClient<T>(mockHttp, config, options)
+}
+
+export async function requestReal<T>(config: AxiosRequestConfig, options: RequestOptions = {}): Promise<T> {
+  return requestWithClient<T>(realHttp, config, options)
+}
+
+async function requestWithClient<T>(client: AxiosInstance, config: AxiosRequestConfig, options: RequestOptions): Promise<T> {
   const retries = options.retries ?? 2
   const retryDelayMs = options.retryDelayMs ?? 350
 
@@ -58,7 +58,7 @@ export async function request<T>(config: AxiosRequestConfig, options: RequestOpt
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
-      const res = await http.request<T>(config)
+      const res = await client.request<T>(config)
       return res.data
     } catch (err) {
       attempt += 1
@@ -70,6 +70,27 @@ export async function request<T>(config: AxiosRequestConfig, options: RequestOpt
       await sleep(retryDelayMs * attempt)
     }
   }
+}
+
+function installAuthInterceptors(client: AxiosInstance) {
+  client.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+    const token = tokenProvider?.()
+    if (token) {
+      config.headers = config.headers ?? {}
+      ;(config.headers as Record<string, string>).Authorization = `Bearer ${token}`
+    }
+    return config
+  })
+
+  client.interceptors.response.use(
+    (res: AxiosResponse) => res,
+    (err: unknown) => {
+      if (isAxiosError(err) && err.response?.status === 401) {
+        unauthorizedHandler?.()
+      }
+      return Promise.reject(err)
+    },
+  )
 }
 
 function shouldRetry(err: unknown) {

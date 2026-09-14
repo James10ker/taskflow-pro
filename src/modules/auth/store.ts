@@ -4,7 +4,7 @@ import { defineStore } from 'pinia'
 import type { ApiError } from '@/types/api'
 import type { AuthSession, User } from '@/types/auth'
 import { readJson, writeJson } from '@/utils/storage'
-import { setAuthTokenProvider, setUnauthorizedHandler } from '@/api/http'
+import { setAuthTokenProvider } from '@/api/http'
 
 import * as authService from './service'
 
@@ -26,9 +26,6 @@ export const useAuthStore = defineStore('auth', () => {
     session.value = stored
 
     setAuthTokenProvider(() => token.value)
-    setUnauthorizedHandler(() => {
-      logout()
-    })
   }
 
   async function login(email: string, password: string) {
@@ -66,7 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function refreshMe() {
-    if (!token.value) return
+    if (!token.value) return false
 
     try {
       const me = await authService.me()
@@ -74,8 +71,10 @@ export const useAuthStore = defineStore('auth', () => {
         session.value = { ...session.value, user: me }
         writeJson(STORAGE_KEY, session.value)
       }
+      return true
     } catch {
       logout()
+      return false
     }
   }
 

@@ -4,9 +4,12 @@ dist/
 build/
 .env
 .env.*
+!.env.example
+!**/.env.example
 *.log
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 project-tree.txt
+backend/target/

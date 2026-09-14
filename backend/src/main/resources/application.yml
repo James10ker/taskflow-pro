@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: taskflow-backend
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/taskflow?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${MYSQL_USER:taskflow}
+    password: ${MYSQL_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  flyway:
+    enabled: true
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    issuer: taskflow-api
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+  cors:
+    allowed-origins: ${FRONTEND_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+
+server:
+  error:
+    include-message: never

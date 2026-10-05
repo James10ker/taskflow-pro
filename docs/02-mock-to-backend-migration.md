@@ -1,59 +1,48 @@
 # Mock → 真实后端迁移状态
 
-更新时间：W1
+更新时间：W2（2026-10-05）
 
-| 模块 | 状态 | W1 请求去向 | 说明 |
+| 模块 | 当前状态 | 请求去向 | 说明 |
 | --- | --- | --- | --- |
-| Auth login | **REAL** | Spring Boot `/api/auth/login` | MySQL 用户、BCrypt、服务端 JWT |
-| Auth me | **REAL** | Spring Boot `/api/auth/me` | 从已验签 JWT 的 `sub` 识别用户 |
-| Auth register | **NOT IMPLEMENTED** | 无可用 UI 入口 | `/auth/register` 暂时重定向登录，避免产生假账号 |
-| Projects | **MOCK** | browser Axios mock adapter | 数据仍在 `taskflow_pro_db_v1` |
-| Tasks / Comments | **MOCK** | browser Axios mock adapter | 数据仍在 `taskflow_pro_db_v1` |
-| Users directory | **MOCK** | browser Axios mock adapter | 不是数据库用户目录；W2 迁移 |
-| Activity | **MOCK** | browser Axios mock adapter | 随 Mock 项目/任务写入 localStorage |
+| Health | **REAL** | Spring Boot `/api/health` | 静态存活检查，不单独证明数据库可用 |
+| Auth login | **REAL** | Spring Boot `/api/auth/login` | 数据库用户、BCrypt、服务端 JWT |
+| Auth me | **REAL** | Spring Boot `/api/auth/me` | 从已验签 JWT principal 识别用户 |
+| Auth register | **NOT IMPLEMENTED** | 无入口 | `/auth/register` 重定向登录，不创建假账号 |
+| Projects | **REAL** | Spring Boot `/api/projects/**` | MyBatis + `projects/project_members`；服务端资源权限 |
+| Tasks / Comments | **NOT OPEN** | 无真实业务入口 | 遗留 Mock 源码保留，但路由不再暴露，Project 详情不加载 |
+| Members management | **NOT IMPLEMENTED** | 无生产接口 | 只有隔离测试 profile 可准备 owner/member 前置数据 |
+| Users directory | **NOT OPEN** | 无真实业务入口 | 旧 `/app/users` 重定向 Projects |
+| Activity | **NOT OPEN** | 无真实业务入口 | Project 详情明确提示未迁移，不显示虚假 0 条 |
 
-## W1 的两个 client
-
-```text
-auth/service.ts
-  -> requestReal()
-  -> realHttp
-  -> browser network
-  -> Spring Boot
-
-projects/tasks/users/activity service
-  -> request()
-  -> mockHttp
-  -> createMockAdapter()
-  -> localStorage
-```
-
-`src/api/http.ts` 仍集中处理 token header、401、重试和错误归一化。差别只在最后选择真实 transport 还是 mock adapter。Auth 调用必须显式写 `requestReal`；旧模块继续用默认的 `request`，使迁移状态从代码调用点即可辨认。
-
-Mock adapter 中原有的 login/register/me 路由已删除，Mock seed 也不再保存 demo 明文密码。`createDb()` 会在读取旧的 `taskflow_pro_db_v1` 后重写一份只含公开用户字段的数据，从而清理已有浏览器数据中的遗留密码。
-
-本地开发可把 `.env.example` 复制为 `.env.local`，让真实 client 请求 `http://localhost:8080/api`。未配置时使用同源 `/api`，适合后续由反向代理统一入口。
-
-## 真实 JWT 如何暂时驱动 Mock 页面
-
-真实后端返回的 user ID 是数据库 ID，而 Mock 项目内保存的是浏览器 seed 的随机 ID，二者不能直接比较。W1 不让 Mock adapter 伪造验证 JWT，也不把 JWT payload 当可信授权信息。它只在收到 Bearer header 时，从已经由真实 `/me` 恢复的前端会话取 email，再映射到同 email 的 Mock seed 用户 ID；角色使用真实会话的角色。
-
-这是明确的临时兼容层，只负责让 Projects/Kanban 继续演示。它不是安全边界；用户仍可修改浏览器代码与 localStorage。W2 迁移 Project/ProjectMember 后应删除这段映射。
-
-## 会话恢复与 401
+## W2 的真实客户端边界
 
 ```text
-启动
-  -> 从 taskflow_pro_session_v1 读取 token
-  -> 安装真实/Mock client 与 Router
-  -> GET 真实 /api/auth/me
-     -> 成功：用数据库最新 user 覆盖本地 user
-     -> 401：清 session，并 replace 到 login
-  -> 挂载页面
+auth/service.ts -----------\
+                             -> requestReal() -> realHttp -> HTTP -> Spring Boot
+projects/service.ts -------/
+
+tasks/users/activity service -> 遗留源码；当前 Router/Projects 页面不触发
+mock adapter                 -> 源码保留，但 main.ts 不安装
 ```
 
-W1 logout 只清前端 token。JWT 到期前仍可独立使用，这是无状态 access token 的预期限制；本周不引入 Redis 黑名单或 refresh token，以免为一个 demo 登出增加不必要状态。
+真实 Projects 请求失败时只显示统一错误，不会自动回退 localStorage。登录成功、根路径、旧 Dashboard 都进入 `/app/projects`；旧 Kanban/用户目录路径重定向到 Projects。
 
-## 后续迁移纪律
+Vite 开发环境使用同源 `/api` 代理，目标由 `VITE_DEV_API_PROXY_TARGET` 设置。生产默认同源；只有明确的跨域部署才设置 `VITE_API_BASE_URL`。
 
-每迁移一个模块：先在后端完成数据模型、鉴权和测试，再把对应 Service 改为 `requestReal`，最后删除该模块在 adapter/Mock DB 中的实现。不要一次删除整个 Mock 层。
+## 权限迁移结果
+
+- 只有全局 admin 可以创建；owner 始终来自已验证 principal。
+- 创建 `projects` 与 owner `project_members` 行在同一事务。
+- 列表只按当前用户成员关系过滤；owner/member 可以查询详情。
+- 修改、删除只允许项目 owner。全局 admin 对他人项目没有隐式权限。
+- 资源存在但无权返回 403，不存在返回 404。
+- 前端 owner 按钮只是 UX；后端仍执行全部权限。
+
+## 仍保留的迁移债务
+
+- V2 仍在主 Flyway 路径播种 demo 用户，尚未完成生产种子隔离/历史库治理。
+- Tasks、Comments、Activity、成员管理和用户目录没有真实接口。
+- Redis 依赖/配置仍存在，但没有业务调用。
+- 没有 Playwright 回归套件；临时浏览器验收不能替代可重复 E2E。
+
+详细实现和运行证据见 [w2-projects-verification.md](w2-projects-verification.md)。

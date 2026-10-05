@@ -13,3 +13,7 @@ Thumbs.db
 .idea/
 project-tree.txt
 backend/target/
+/.venv-api-tests*/
+/.artifacts/
+__pycache__/
+*.py[cod]

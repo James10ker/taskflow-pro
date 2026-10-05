@@ -4,11 +4,13 @@
       <div>
         <div class="text-sm font-semibold">Projects</div>
         <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Create projects, assign members, and monitor delivery status.
+          Projects shown here come from the authenticated backend API.
         </div>
       </div>
 
-      <BaseButton v-if="perms.can('projects:create')" @click="openCreate">Create project</BaseButton>
+      <BaseButton v-if="perms.can('projects:create')" @click="openCreate"
+        >Create project</BaseButton
+      >
     </div>
 
     <div class="flex flex-col gap-3 sm:flex-row">
@@ -16,12 +18,20 @@
       <BaseSelect v-model="statusFilter" label="Status" :options="statusOptions" />
     </div>
 
-    <div v-if="projects.loading" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
+    <div
+      v-if="projects.loading"
+      class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900"
+    >
       <div class="text-sm font-semibold">Loading projects…</div>
-      <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">Fetching your latest workspace data.</div>
+      <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+        Fetching your latest workspace data.
+      </div>
     </div>
 
-    <div v-else-if="projects.error" class="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
+    <div
+      v-else-if="projects.error"
+      class="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200"
+    >
       <div class="text-sm font-semibold">Couldn’t load projects</div>
       <div class="mt-1 text-sm">Please try again.</div>
       <div class="mt-4">
@@ -37,9 +47,11 @@
         class="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
       >
         <div class="text-sm font-semibold text-slate-900 dark:text-slate-50">No projects yet</div>
-        <div class="mt-1 text-sm">Create your first project to start tracking tasks.</div>
+        <div class="mt-1 text-sm">Create your first project to start organizing the workspace.</div>
         <div class="mt-5">
-          <BaseButton v-if="perms.can('projects:create')" @click="openCreate">Create project</BaseButton>
+          <BaseButton v-if="perms.can('projects:create')" @click="openCreate"
+            >Create project</BaseButton
+          >
         </div>
       </div>
     </div>
@@ -48,7 +60,6 @@
       :open="formOpen"
       :mode="formMode"
       :project="selectedProject"
-      :members="members"
       @close="formOpen = false"
       @saved="onSaved"
     />
@@ -66,14 +77,12 @@ import ProjectCard from '@/modules/projects/components/ProjectCard.vue'
 import ProjectFormModal from '@/modules/projects/components/ProjectFormModal.vue'
 
 import { useProjectsStore } from '@/modules/projects/store'
-import { useUsersStore } from '@/modules/users/store'
 import { usePermissions } from '@/modules/auth/permissions'
 
 import { debounce } from '@/utils/debounce'
 
 const router = useRouter()
 const projects = useProjectsStore()
-const users = useUsersStore()
 const perms = usePermissions()
 
 const searchInput = ref('')
@@ -108,11 +117,11 @@ const formOpen = ref(false)
 const formMode = ref<'create' | 'edit'>('create')
 const selectedProjectId = ref<string | null>(null)
 
-const selectedProject = computed(() => (selectedProjectId.value ? projects.byId[selectedProjectId.value] : null))
-const members = computed(() => users.membersForProjects)
+const selectedProject = computed(() =>
+  selectedProjectId.value ? projects.byId[selectedProjectId.value] : null,
+)
 
 onMounted(async () => {
-  await users.fetchMembersIfNeeded()
   await projects.fetchAll()
 })
 

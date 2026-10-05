@@ -22,7 +22,7 @@
     </BaseButton>
 
     <div class="text-center text-xs text-slate-500 dark:text-slate-400">
-      W1 supports the seeded admin and member demo accounts. Registration will be migrated later.
+      Authentication and project management use the real backend API. Registration is not available.
     </div>
   </form>
 </template>
@@ -62,7 +62,7 @@ async function onSubmit() {
   if (ok) {
     await auth.refreshMe()
     toasts.success('Signed in successfully.')
-    router.push({ name: 'dashboard' })
+    router.push({ name: 'projects' })
   }
 }
 </script>

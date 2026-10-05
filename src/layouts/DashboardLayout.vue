@@ -70,41 +70,26 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/modules/auth/store'
-import { usePermissions } from '@/modules/auth/permissions'
 import { useThemeStore } from '@/store/theme'
 
 const auth = useAuthStore()
-const perms = usePermissions()
 const theme = useThemeStore()
 const router = useRouter()
 const route = useRoute()
 
 const navItems = computed(() => {
-  const base = [
-    { to: '/app/dashboard', label: 'Dashboard' },
-    { to: '/app/projects', label: 'Projects' },
-  ]
-
-  if (perms.can('users:manage')) base.push({ to: '/app/users', label: 'Users' })
-
-  return base
+  return [{ to: '/app/projects', label: 'Projects' }]
 })
 
 const pageTitle = computed(() => {
-  if (route.name === 'dashboard') return 'Dashboard'
   if (route.name === 'projects') return 'Projects'
   if (route.name === 'project') return 'Project overview'
-  if (route.name === 'kanban') return 'Kanban board'
-  if (route.name === 'users') return 'User directory'
   return 'Workspace'
 })
 
 const pageSubtitle = computed(() => {
-  if (route.name === 'dashboard') return 'Status overview and recent activity.'
-  if (route.name === 'projects') return 'Create, manage, and track project delivery.'
-  if (route.name === 'project') return 'Key details, members, and quick actions.'
-  if (route.name === 'kanban') return 'Move work across stages and keep momentum.'
-  if (route.name === 'users') return 'Admin-only list of workspace users.'
+  if (route.name === 'projects') return 'Create and manage projects through the real API.'
+  if (route.name === 'project') return 'Project details and owner actions.'
   return ''
 })
 

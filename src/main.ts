@@ -3,7 +3,6 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import { installRouter } from './router'
-import { installMockApi } from './api/mock'
 import { setUnauthorizedHandler } from './api/http'
 import { useAuthStore } from './modules/auth/store'
 import { useThemeStore } from './store/theme'
@@ -55,8 +54,6 @@ async function bootstrap() {
 
   const authStore = useAuthStore(pinia)
   authStore.hydrate()
-
-  installMockApi(() => authStore.user)
 
   const router = installRouter(app)
   setUnauthorizedHandler(() => {

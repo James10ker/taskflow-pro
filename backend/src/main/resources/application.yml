@@ -11,6 +11,9 @@ spring:
       port: ${REDIS_PORT:6379}
   flyway:
     enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
 
 mybatis:
   configuration:

@@ -4,7 +4,7 @@
       <header class="flex items-center justify-between">
         <div class="flex flex-col">
           <h1 class="text-lg font-semibold tracking-tight">TaskFlow Pro</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-300">Sign in to manage projects and tasks.</p>
+          <p class="text-sm text-slate-600 dark:text-slate-300">Sign in to manage your project workspace.</p>
         </div>
 
         <button

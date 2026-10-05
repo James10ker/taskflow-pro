@@ -70,7 +70,7 @@ async function onSubmit() {
   if (ok) {
     await auth.refreshMe()
     toasts.success('Account created successfully.')
-    router.push({ name: 'dashboard' })
+    router.push({ name: 'projects' })
   }
 }
 </script>

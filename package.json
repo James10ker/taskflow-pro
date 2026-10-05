@@ -1,6 +1,6 @@
 {
   "name": "taskflow-pro",
-  "description": "Production-style project management SaaS frontend (Vue 3 + TypeScript) with RBAC, activity log, and resilient UX backed by a persistent mock REST API.",
+  "description": "Taskflow portfolio app with a Vue 3 frontend and real Spring Boot authentication and Projects APIs; legacy task modules remain outside the active real-data flow.",
   "private": true,
   "version": "0.1.0",
   "license": "MIT",

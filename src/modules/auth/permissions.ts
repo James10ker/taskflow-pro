@@ -7,14 +7,12 @@ import { useAuthStore } from './store'
 
 export type Permission =
   | 'projects:create'
-  | 'projects:update'
-  | 'projects:delete'
   | 'users:manage'
   | 'tasks:create'
   | 'tasks:update'
 
 const PERMISSIONS_BY_ROLE: Record<UserRole, Permission[]> = {
-  admin: ['projects:create', 'projects:update', 'projects:delete', 'users:manage', 'tasks:create', 'tasks:update'],
+  admin: ['projects:create', 'users:manage', 'tasks:create', 'tasks:update'],
   member: ['tasks:create', 'tasks:update'],
 }
 

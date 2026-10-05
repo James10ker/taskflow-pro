@@ -28,6 +28,7 @@ export const useProjectsStore = defineStore('projects', () => {
     try {
       items.value = await projectsService.listProjects()
     } catch (err) {
+      items.value = []
       error.value = err as ApiError
     } finally {
       loading.value = false
@@ -44,6 +45,7 @@ export const useProjectsStore = defineStore('projects', () => {
       else items.value.unshift(project)
       return project
     } catch (err) {
+      items.value = items.value.filter((project) => project.id !== id)
       error.value = err as ApiError
       return null
     }
@@ -66,12 +68,11 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  async function update(id: string, patch: Omit<projectsService.UpdateProjectPayload, 'memberIds'> & { memberIds: string[] }) {
+  async function update(id: string, patch: projectsService.UpdateProjectPayload) {
     loading.value = true
     error.value = null
 
     try {
-      assertPermission('projects:update')
       const project = await projectsService.updateProject(id, patch)
       const idx = items.value.findIndex((p) => p.id === id)
       if (idx >= 0) items.value[idx] = project
@@ -90,7 +91,6 @@ export const useProjectsStore = defineStore('projects', () => {
     error.value = null
 
     try {
-      assertPermission('projects:delete')
       await projectsService.deleteProject(id)
       items.value = items.value.filter((p) => p.id !== id)
       return true
